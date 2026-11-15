@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Control Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #cce5ff, #f8f9fa);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #004085;
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px; /* increased spacing between cards */
+            margin-bottom: 26px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 28px; /* slightly more breathing room */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-title {
+            font-size: 1.2em;
+            color: #007bff;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .metric-value {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .metric-value.temp {
+            color: #ff6b6b;
+        }
+
+        .metric-value.humidity {
+            color: #007bff;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-on {
+            background: #51cf66;
+            box-shadow: 0 0 10px #51cf66;
+        }
+
+        .status-off {
+            background: #adb5bd;
+        }
+
+        .status-warning {
+            background: #ffd43b;
+            box-shadow: 0 0 10px #ffd43b;
+        }
+
+        .status-error {
+            background: #ff6b6b;
+            box-shadow: 0 0 10px #ff6b6b;
+        }
+
+        .mode-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .mode-idle {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .mode-evaporative {
+            background: #cce5ff;
+            color: #007bff;
+        }
+
+        .mode-chiller {
+            background: #e3f2fd;
+            color: #004085;
+        }
+
+        .mode-dehumidify {
+            background: #fff3bf;
+            color: #e67700;
+        }
+
+        .mode-emergency {
+            background: #ffe0e0;
+            color: #c92a2a;
+        }
+
+        .chart-container {
+            grid-column: 1 / -1;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-top: 18px; /* space above charts */
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-success {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #40c057;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #fa5252;
+        }
+
+        .btn-secondary {
+            background: #adb5bd;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #868e96;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95em;
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #adb5bd;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .switch.active {
+            background: #51cf66;
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: 0.3s;
+        }
+
+        .switch.active::after {
+            left: 27px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-info {
+            background: #d0ebff;
+            color: #1971c2;
+            border-left: 4px solid #1971c2;
+        }
+
+        .alert-warning {
+            background: #fff3bf;
+            color: #e67700;
+            border-left: 4px solid #e67700;
+        }
+
+        .alert-error {
+            background: #ffe0e0;
+            color: #c92a2a;
+            border-left: 4px solid #c92a2a;
+        }
+
+        .timestamp {
+            color: #868e96;
+            font-size: 0.85em;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌡️ Climate Control Dashboard</h1>
+            <p class="subtitle">Mango Storage System - Optimal: 50-54°F (10-12.2°C), 85-90% RH</p>
+            <p class="subtitle" style="font-size:.8em;opacity:.8">Live simulation · 1 minute of storage time passes every 2 seconds</p>
+        </header>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="grid">
+            <!-- Sensor Readings Card -->
+            <div class="card">
+                <div class="card-title">📊 Current Conditions</div>
+                <div class="metric">
+                    <span class="metric-label">Temperature</span>
+                    <span class="metric-value temp" id="temperature">--°C</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Humidity</span>
+                    <span class="metric-value humidity" id="humidity">--%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Status</span>
+                    <span id="connection-status">
+                        <span class="status-indicator status-off"></span>
+                        Connecting...
+                    </span>
+                </div>
+                <div class="timestamp" id="last-update">Last update: --</div>
+            </div>
+
+            <!-- Control Mode Card -->
+            <div class="card">
+                <div class="card-title">🎯 Control System</div>
+                <div class="metric">
+                    <span class="metric-label">Operating Mode</span>
+                    <span class="mode-badge mode-idle" id="mode">IDLE</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Target Temp</span>
+                    <span class="metric-value" id="target-temp">5.0°C</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Target Humidity</span>
+                    <span class="metric-value" id="target-humidity">90.0%</span>
+                </div>
+            </div>
+
+            <!-- Actuator Status Card -->
+            <div class="card">
+                <div class="card-title">⚙️ Actuator Status</div>
+                <div class="metric">
+                    <span class="metric-label">
+                        <span class="status-indicator status-off" id="pump-indicator"></span>
+                        Water Pump
+                    </span>
+                    <span id="pump-state">OFF</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">
+                        <span class="status-indicator status-off" id="chiller-indicator"></span>
+                        Chiller
+                    </span>
+                    <span id="chiller-state">OFF</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">
+                        <span class="status-indicator status-off" id="dehumidifier-indicator"></span>
+                        Dehumidifier
+                    </span>
+                    <span id="dehumidifier-state">OFF</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Water Level</span>
+                    <span id="water-level">
+                        <span class="status-indicator status-on"></span>
+                        OK
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="card">
+            <div class="card-title">🎮 Controls</div>
+            <div class="controls">
+                <select id="preset-selector">
+                    <option value="">Select Produce Type...</option>
+                    <option value="mango" selected>Mango (50-54°F, 85-90% RH)</option>
+                    <option value="leafy_greens">Leafy Greens</option>
+                    <option value="berries">Berries</option>
+                    <option value="tomatoes">Tomatoes</option>
+                    <option value="citrus">Citrus</option>
+                </select>
+                <button class="btn-primary" onclick="loadPreset()">Load Preset</button>
+                <button class="btn-success" onclick="exportData()">Export Data</button>
+                <button class="btn-danger" onclick="openDoor()">Open Door (disturbance)</button>
+                <button class="btn-secondary" onclick="refillWater()">Refill Water</button>
+                <button class="btn-secondary" onclick="toggleManualOverride()">
+                    <span id="override-text">Enable Manual Override</span>
+                </button>
+            </div>
+            <div id="manual-controls" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 2px solid #e9ecef;">
+                <div class="controls">
+                    <div class="toggle-switch">
+                        <span>Pump:</span>
+                        <div class="switch" id="pump-switch" onclick="toggleActuator('pump')"></div>
+                    </div>
+                    <div class="toggle-switch">
+                        <span>Chiller:</span>
+                        <div class="switch" id="chiller-switch" onclick="toggleActuator('chiller')"></div>
+                    </div>
+                    <div class="toggle-switch">
+                        <span>Dehumidifier:</span>
+                        <div class="switch" id="dehumidifier-switch" onclick="toggleActuator('dehumidifier')"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-container">
+            <div class="card-title">📈 Historical Data (24 hours)</div>
+            <div id="temperature-chart"></div>
+        </div>
+
+        <div class="chart-container">
+            <div id="humidity-chart"></div>
+        </div>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------------
+        // Self-contained simulation (no backend): a small thermal/humidity
+        // model of a mango storage room with bang-bang (hysteresis) control.
+        // 1 simulation tick = 1 simulated minute = 2 real seconds.
+        // ---------------------------------------------------------------
+        const PRESETS = {
+            mango:        { name: 'Mango',        temp: 11.0, hum: 88, label: 'Mango Storage System - Optimal: 50-54°F (10-12.2°C), 85-90% RH' },
+            leafy_greens: { name: 'Leafy Greens', temp: 1.0,  hum: 95, label: 'Leafy Greens Storage - Optimal: ~34°F (1°C), 95% RH' },
+            berries:      { name: 'Berries',      temp: 1.0,  hum: 92, label: 'Berry Storage - Optimal: ~34°F (1°C), 90-95% RH' },
+            tomatoes:     { name: 'Tomatoes',     temp: 13.0, hum: 90, label: 'Tomato Storage - Optimal: ~55°F (13°C), 85-95% RH' },
+            citrus:       { name: 'Citrus',       temp: 8.0,  hum: 90, label: 'Citrus Storage - Optimal: ~46°F (8°C), 85-90% RH' }
+        };
+        const AMBIENT_AVG = 25, AMBIENT_SWING = 4, AMBIENT_HUM = 62;
+        const MAX_POINTS = 1440;            // 24 h of 1-minute samples
+
+        // Hardcoded "current conditions" shown on first load
+        const INITIAL = { temp: 12.1, hum: 87.2, water: 78, chiller: true, pump: false, dehumidifier: false };
+
+        // Seeded RNG so the pre-generated history is the same every load
+        function mulberry32(a) {
+            return function () {
+                a |= 0; a = a + 0x6D2B79F5 | 0;
+                let t = Math.imul(a ^ a >>> 15, 1 | a);
+                t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+                return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            };
+        }
+        let rand = mulberry32(2025);
+        const noise = (s) => (rand() - 0.5) * 2 * s;
+
+        const state = {
+            preset: 'mango',
+            target: { temperature: PRESETS.mango.temp, humidity: PRESETS.mango.hum },
+            temp: INITIAL.temp, hum: INITIAL.hum, water: INITIAL.water,
+            act: { pump: INITIAL.pump, chiller: INITIAL.chiller, dehumidifier: INITIAL.dehumidifier },
+            manual: false,
+            time: new Date(),
+            hist: { t: [], temp: [], hum: [] }
+        };
+
+        function ambientTemp(date) {
+            const h = date.getHours() + date.getMinutes() / 60;
+            return AMBIENT_AVG + AMBIENT_SWING * Math.sin((h - 9) / 24 * 2 * Math.PI);   // warmest mid-afternoon
+        }
+
+        // Hysteresis controller
+        function control(s) {
+            const a = s.act, T = s.temp, H = s.hum, tt = s.target.temperature, th = s.target.humidity;
+            if (!a.chiller && T > tt + 0.8) a.chiller = true;
+            else if (a.chiller && T < tt + 0.1) a.chiller = false;
+            if (!a.pump && H < th - 3 && s.water > 5) a.pump = true;
+            else if (a.pump && (H > th - 0.5 || s.water <= 5)) a.pump = false;
+            if (!a.dehumidifier && H > th + 4) a.dehumidifier = true;
+            else if (a.dehumidifier && H < th + 1) a.dehumidifier = false;
+        }
+
+        // Physics for one simulated minute
+        function physics(s) {
+            const amb = ambientTemp(s.time);
+            s.temp += 0.012 * (amb - s.temp) + noise(0.04);       // heat leak from outside
+            s.hum  += 0.010 * (AMBIENT_HUM - s.hum) + noise(0.12);
+            if (s.act.chiller) { s.temp -= 0.30; s.hum += 0.10; } // cooling slightly raises RH
+            if (s.act.pump) { s.hum += 0.75; s.water = Math.max(0, s.water - 0.12); }
+            if (s.act.dehumidifier) { s.hum -= 0.85; s.temp += 0.03; }
+            s.hum = Math.min(100, Math.max(20, s.hum));
+        }
+
+        function pushHistory(s) {
+            const h = s.hist;
+            h.t.push(new Date(s.time)); h.temp.push(+s.temp.toFixed(2)); h.hum.push(+s.hum.toFixed(2));
+            if (h.t.length > MAX_POINTS) { h.t.shift(); h.temp.shift(); h.hum.shift(); }
+        }
+
+        function tick(s) {
+            s.time = new Date(s.time.getTime() + 60000);
+            if (!s.manual) control(s);
+            physics(s);
+            pushHistory(s);
+            // occasional random door-open disturbance
+            if (rand() < 0.002) { s.temp += 1.2; s.hum -= 3; }
+        }
+
+        // Pre-generate 24 h of history ending now, then pin the hardcoded current values
+        (function seedHistory() {
+            const end = new Date();
+            const s = {
+                temp: 11.2, hum: 88, water: 90, target: state.target, manual: false,
+                act: { pump: false, chiller: false, dehumidifier: false },
+                time: new Date(end.getTime() - MAX_POINTS * 60000), hist: state.hist
+            };
+            for (let i = 0; i < MAX_POINTS - 1; i++) tick(s);
+            state.time = end;
+            state.hist.t.push(new Date(end)); state.hist.temp.push(INITIAL.temp); state.hist.hum.push(INITIAL.hum);
+            if (state.hist.t.length > MAX_POINTS) { state.hist.t.shift(); state.hist.temp.shift(); state.hist.hum.shift(); }
+            rand = mulberry32(Date.now() & 0xffffffff);  // live simulation varies run to run
+        })();
+
+        // ---------------- Display ----------------
+        const $ = (id) => document.getElementById(id);
+
+        function updateActuatorIndicator(name, on) {
+            $(name + '-indicator').className = 'status-indicator ' + (on ? 'status-on' : 'status-off');
+            $(name + '-state').textContent = on ? 'ON' : 'OFF';
+        }
+
+        function currentMode() {
+            if (state.manual) return ['manual', 'idle'];
+            const a = state.act;
+            if (a.chiller) return ['cooling', 'chiller'];
+            if (a.dehumidifier) return ['dehumidify', 'dehumidify'];
+            if (a.pump) return ['humidify', 'evaporative'];
+            return ['idle', 'idle'];
+        }
+
+        function updateDisplay() {
+            $('temperature').textContent = state.temp.toFixed(1) + '°C';
+            $('humidity').textContent = state.hum.toFixed(1) + '%';
+            $('target-temp').textContent = state.target.temperature.toFixed(1) + '°C';
+            $('target-humidity').textContent = state.target.humidity.toFixed(1) + '%';
+            const m = currentMode();
+            $('mode').textContent = m[0].toUpperCase();
+            $('mode').className = 'mode-badge mode-' + m[1];
+            ['pump', 'chiller', 'dehumidifier'].forEach((n) => updateActuatorIndicator(n, state.act[n]));
+            const ok = state.water > 5;
+            $('water-level').innerHTML = '<span class="status-indicator ' + (ok ? 'status-on' : 'status-error') + '"></span>' +
+                (ok ? 'OK' : 'LOW') + ' (' + Math.round(state.water) + '%)';
+            $('last-update').textContent = 'Last update: ' + new Date().toLocaleTimeString();
+            ['pump', 'chiller', 'dehumidifier'].forEach((n) => $(n + '-switch').classList.toggle('active', state.act[n]));
+        }
+
+        // ---------------- Controls ----------------
+        function loadPreset() {
+            const key = $('preset-selector').value;
+            if (!key) { showAlert('Please select a produce type', 'warning'); return; }
+            const p = PRESETS[key];
+            state.preset = key;
+            state.target.temperature = p.temp; state.target.humidity = p.hum;
+            document.querySelector('.subtitle').textContent = p.label;
+            showAlert('Loaded preset: ' + p.name, 'info');
+            updateDisplay(); renderCharts();
+        }
+
+        function exportData() {
+            const h = state.hist;
+            const rows = ['timestamp,temperature_c,humidity_pct'];
+            h.t.forEach((t, i) => rows.push(t.toISOString() + ',' + h.temp[i] + ',' + h.hum[i]));
+            const url = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv' }));
+            const a = document.createElement('a');
+            a.href = url; a.download = 'climetrics-24h.csv'; a.click();
+            URL.revokeObjectURL(url);
+            showAlert('Exported ' + h.t.length + ' simulated readings to CSV', 'info');
+        }
+
+        function toggleManualOverride() {
+            state.manual = !state.manual;
+            $('override-text').textContent = state.manual ? 'Disable Manual Override' : 'Enable Manual Override';
+            $('manual-controls').style.display = state.manual ? 'block' : 'none';
+            showAlert(state.manual ? 'Manual override enabled - automatic control paused' : 'Manual override disabled', 'info');
+            updateDisplay();
+        }
+
+        function toggleActuator(name) {
+            if (!state.manual) return;
+            if (name === 'pump' && !state.act.pump && state.water <= 5) { showAlert('Water level too low to run pump', 'warning'); return; }
+            state.act[name] = !state.act[name];
+            updateDisplay();
+        }
+
+        function openDoor() {
+            state.temp += 2.5; state.hum -= 6;
+            showAlert('Door opened - warm, dry air let in. Watch the controller respond.', 'warning');
+            updateDisplay();
+        }
+
+        function refillWater() { state.water = 100; updateDisplay(); }
+
+        function showAlert(message, type) {
+            const el = $('alert');
+            el.textContent = message;
+            el.className = 'alert alert-' + type + ' show';
+            clearTimeout(showAlert.t);
+            showAlert.t = setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        // ---------------- Charts ----------------
+        function band(target, w) {
+            return { type: 'rect', xref: 'paper', x0: 0, x1: 1, yref: 'y', y0: target - w, y1: target + w,
+                     fillcolor: 'rgba(40,167,69,.10)', line: { width: 0 } };
+        }
+
+        function renderCharts() {
+            const h = state.hist;
+            Plotly.react('temperature-chart', [{
+                x: h.t, y: h.temp, type: 'scatter', mode: 'lines', name: 'Temperature',
+                line: { color: '#ff6b6b', width: 2 }
+            }], {
+                title: 'Temperature Over Time (simulated)', xaxis: { title: 'Time' }, yaxis: { title: 'Temperature (°C)' },
+                margin: { t: 50, r: 50, b: 50, l: 50 }, shapes: [band(state.target.temperature, 1)]
+            }, { responsive: true });
+            Plotly.react('humidity-chart', [{
+                x: h.t, y: h.hum, type: 'scatter', mode: 'lines', name: 'Humidity',
+                line: { color: '#4ecdc4', width: 2 }
+            }], {
+                title: 'Humidity Over Time (simulated)', xaxis: { title: 'Time' }, yaxis: { title: 'Humidity (%)' },
+                margin: { t: 50, r: 50, b: 50, l: 50 }, shapes: [band(state.target.humidity, 2.5)]
+            }, { responsive: true });
+        }
+
+        // ---------------- Run ----------------
+        $('connection-status').innerHTML = '<span class="status-indicator status-on"></span>Simulation running';
+        updateDisplay();
+        renderCharts();
+        let n = 0;
+        setInterval(() => {
+            tick(state); updateDisplay();
+            if (++n % 5 === 0) renderCharts();
+        }, 2000);
+    </script>
+</body>
+</html>

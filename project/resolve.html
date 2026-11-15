@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guest Issue Priority Dashboard</title>
+<style>
+  :root {
+    --bg:#f3f4f6; --panel:#ffffff; --panel2:#ffffff; --line:#d8dde5;
+    --ink:#1b2530; --muted:#5d6876; --gold:#104c97; --navy:#002f61; --soft:#f7f8fa; --body:#2a3542;
+    --q1:#b52b34; --q2:#104c97; --q3:#a86d10; --q4:#4f6f52;
+  }
+  /* @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#0f1620; --panel:#16202c; --panel2:#16202c; --line:#2b3a4c; --ink:#e6ebf2; --muted:#9aa7b7; --gold:#7fa8e0; --navy:#0b2a50; --soft:#1b2735; --body:#d3dae4;
+    --q1:#e2646b; --q2:#7fa8e0; --q3:#d9a548; --q4:#8fbf8f; } }
+  :root[data-theme="dark"] { --bg:#0f1620; --panel:#16202c; --panel2:#16202c; --line:#2b3a4c; --ink:#e6ebf2; --muted:#9aa7b7; --gold:#7fa8e0; --navy:#0b2a50; --soft:#1b2735; --body:#d3dae4;
+    --q1:#e2646b; --q2:#7fa8e0; --q3:#d9a548; --q4:#8fbf8f; } */
+  * { box-sizing:border-box; } 
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 "Helvetica Neue",Arial,sans-serif; }
+  body::before { content:""; display:block; height:6px; background:var(--navy); border-bottom:3px solid #104c97; }
+  header { max-width:1150px; margin:0 auto; padding:24px 20px 6px; }
+  .eyebrow { font-size:12px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold); font-weight:700; }
+  h1 { margin:4px 0 2px; font:600 28px/1.2 Georgia,"Times New Roman",serif; letter-spacing:.005em; color:var(--navy); }
+  /* @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) h1 { color:var(--ink); } }
+  :root[data-theme="dark"] h1 { color:var(--ink); } */
+  .sub { margin:0; color:var(--muted); font-style:italic; }
+  main { max-width:1150px; margin:0 auto; padding:18px 20px 10px; display:grid; gap:18px;
+    grid-template-columns:minmax(0,5fr) minmax(0,6fr); }
+  @media (max-width:860px){ main { grid-template-columns:minmax(0,1fr); } }
+  @media (max-width:520px){ h1{font-size:22px} .matrix{grid-template-columns:minmax(0,1fr);grid-template-rows:none;min-height:0} .axis{display:none} .card{padding:14px} main,header{padding-left:16px;padding-right:16px} }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 10px 30px rgba(0,47,97,.08); }
+  h2 { margin:0 0 10px; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); }
+  .list { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .pick { max-width:100%; text-align:left; cursor:pointer; background:var(--panel); color:var(--ink); border:1px solid var(--line);
+    border-radius:99px; padding:5px 12px; font:inherit; font-size:13px; }
+  .pick:hover { border-color:var(--gold); }
+  .pick[aria-pressed="true"] { color:var(--ink); background:color-mix(in srgb, var(--gold) 10%, transparent); border-color:var(--gold); }
+  .pick i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .chip.strong { font-weight:700; color:var(--q1); border-color:color-mix(in srgb, var(--q1) 40%, var(--line)); }
+  .chip { font-size:12px; padding:2px 10px; border-radius:99px; border:1px solid var(--line); color:var(--muted); background:var(--soft); }
+  blockquote { margin:0 0 16px; padding:6px 0 6px 16px; border-left:2px solid var(--gold); font:italic 15.5px/1.55 Georgia,serif; color:var(--body); }
+  .score { display:grid; grid-template-columns:1fr auto; gap:3px 12px; font-size:14px; }
+  .score b { font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; }
+  .bar { grid-column:1/-1; height:4px; background:var(--line); border-radius:2px; overflow:hidden; margin-bottom:8px; }
+  .bar i { display:block; height:100%; background:var(--gold); transition:width .4s; }
+  .verdict { margin-top:14px; padding:12px 14px; border-radius:10px; border:1px solid var(--vc); background:var(--soft); }
+  .verdict strong { color:var(--vc); font-weight:700; }
+  ul { margin:6px 0 0; padding-left:20px; color:var(--body); font-size:14px; }
+  .matrix { display:grid; grid-template-columns:20px 1fr 1fr; grid-template-rows:20px 1fr 1fr; gap:8px; min-height:440px; }
+  .axis { font-size:11px; font-weight:700; color:var(--muted); letter-spacing:.16em; text-transform:uppercase; display:flex; align-items:center; justify-content:center; }
+  .axis.v { writing-mode:vertical-rl; transform:rotate(180deg); }
+  .q { border-radius:10px; padding:11px; border:1px solid var(--line); background:var(--soft);
+    display:flex; flex-direction:column; gap:6px; border-top:2px solid var(--qc); }
+  .q h3 { margin:0; font-size:15px; font-weight:700; color:var(--qc); }
+  .q small { color:var(--muted); font-size:12px; font-style:normal; margin-top:-4px; }
+  .task { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:6px 9px; font-size:13px; }
+  .task em { display:block; font-style:normal; font-size:11.5px; color:var(--muted); }
+  .task.sel { border-color:var(--qc); box-shadow:0 0 0 3px color-mix(in srgb, var(--qc) 25%, transparent); }
+  .task.sel::before { content:"SELECTED  "; font-size:9px; font-weight:700; letter-spacing:.15em; color:var(--qc); }
+  .q1{--qc:var(--q1)} .q2{--qc:var(--q2)} .q3{--qc:var(--q3)} .q4{--qc:var(--q4)}
+  .task { display:flex; flex-direction:column; cursor:pointer; }
+  .task:hover { border-color:var(--qc); }
+  .rbtn { display:none; align-self:flex-end; margin-top:6px; cursor:pointer; background:transparent; color:var(--qc); border:1px solid var(--qc);
+    border-radius:99px; padding:2px 12px; font:inherit; font-size:11px; font-weight:600; letter-spacing:.08em; }
+  .task.sel .rbtn { display:block; }
+  .rbtn:hover { background:color-mix(in srgb, var(--qc) 20%, transparent); }
+  dialog { width:min(560px,92vw); background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:14px; padding:18px;
+    box-shadow:0 20px 60px rgba(0,47,97,.25); }
+  dialog::backdrop { background:rgba(0,20,45,.45); }
+  .reply-to { font-size:13px; color:var(--muted); margin-bottom:8px; }
+  .reply-to b { color:var(--ink); font-weight:700; }
+  textarea { width:100%; min-height:240px; resize:vertical; background:var(--panel); color:var(--ink); border:1px solid var(--line);
+    border-radius:10px; padding:12px 14px; font:inherit; font-size:14px; line-height:1.55; }
+  textarea:focus { outline:none; border-color:var(--gold); }
+  .reply-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .reply-bar span { font-size:12px; color:var(--muted); font-style:italic; }
+  .btns { display:flex; gap:8px; }
+  .send, .close { cursor:pointer; border-radius:99px; padding:7px 18px; font:inherit; font-size:14px; font-weight:600; }
+  .send { background:#104c97; color:#fff; border:0; }
+  .close { background:transparent; color:var(--gold); border:1px solid var(--line); }
+  .send:disabled { background:var(--line); border-color:var(--line); color:var(--muted); cursor:default; }
+  footer { max-width:1150px; margin:0 auto; padding:6px 20px 28px; color:var(--muted); font-size:12px; font-style:italic; }
+</style>
+</head>
+<body>
+<header>
+  <!-- <div class="eyebrow">Hotel Operations</div> -->
+  <h1>Guest Issue Priority Dashboard - Facility ID 26491</h1>
+  <!-- <p class="sub">Three sample complaints, scored and placed on the Eisenhower matrix. Demo data, not a live feed.</p> -->
+</header>
+
+<main>
+  <section class="card">
+    <h2> Incoming complaints from Kipsu</h2>
+    <div class="list" id="list"></div>
+    <div id="detail"></div>
+  </section>
+
+  <section class="card">
+    <!-- <h2>Eisenhower matrix</h2> -->
+    <div class="matrix">
+      <div></div><div class="axis">Urgent</div><div class="axis">Not urgent</div>
+      <div class="axis v">Important</div>
+      <div class="q q1" id="q1"><h3>1 · Do now</h3><small>Urgent and important</small></div>
+      <div class="q q2" id="q2"><h3>2 · Schedule</h3><small>Important, not urgent</small></div>
+      <div class="axis v">Less important</div>
+      <div class="q q3" id="q3"><h3>3 · Delegate</h3><small>Urgent, less important</small></div>
+      <div class="q q4" id="q4"><h3>4 · Monitor</h3><small>Neither</small></div>
+    </div>
+  </section>
+</main>
+
+<footer>Scores are hardcoded. The real system would derive severity, guest value and time pressure from the survey fields (rating, Honors tier, resolution status, topic) and live ticket age.</footer>
+
+<dialog id="dlg" aria-label="Reply to guest">
+  <div class="reply-to" id="dlg-to"></div>
+  <textarea id="draft" aria-label="Reply draft"></textarea>
+  <div class="reply-bar"><span id="dlg-note"></span>
+    <div class="btns"><button class="close" id="dlg-close">Close</button><button class="send" id="send">Send reply</button></div></div>
+</dialog>
+
+<script>
+const QCOLOR = {q1:"var(--q1)", q2:"var(--q2)", q3:"var(--q3)", q4:"var(--q4)"};
+const QNAME  = {q1:"Quadrant 1: Urgent and Important. Do now.", q2:"Quadrant 2: Important, not Urgent. Schedule.",
+                q3:"Quadrant 3: Urgent, less Important. Delegate.", q4:"Quadrant 4: Monitor."};
+
+const complaints = [
+  { id:"c1", short:"Leaking shower, Rm 1412", q:"q1", room:"Room 1412",
+    chips:["Honors Diamond","Business stay","Unresolved · 18h"],
+    text:"The shower has been leaking into the carpet since the first night and the room is soaking wet. I reported it twice at the front desk and nobody has come. I need to move rooms before my client meetings tomorrow.",
+    scores:[["Severity (room unusable)",9],["Guest value (tier, repeat business)",8],["Time pressure (leaves in 36h)",9]],
+    fix:"Yes",
+    reply:` `,
+    actions:["Assign Engineering and the Front Office Manager, 1 hour to respond","Offer an immediate room move, then open a repair ticket","Credit eligible if still open after 24h: 50% of one night (Diamond tier)"] },
+  { id:"c2", short:"Lobby too cold, thermostat capped", q:"q2", room:"Room 905",
+    chips:["Honors Gold","Business stay","Unresolved · 6h","Recurring · 16 similar reviews"],
+    text:"The only issue was the temperature in the hotel. The thermostat would not go above 69 degrees. Staff brought a space heater, which was kind, but it should not take that.",
+    scores:[["Severity (comfort, not safety)",4],["Guest value (tier, repeat business)",7],["Time pressure (guest checks out tomorrow)",3]],
+    fix:"Yes",
+    reply:` `,
+    actions:["Create a maintenance project to review thermostat limits building-wide","Schedule within the week, owner: Chief Engineer","No credit: guest's immediate issue was resolved on the spot"] },
+  { id:"c3", short:"Missing conditioner, Rm 806", q:"q3", room:"Room 806",
+    chips:["Honors Base","Leisure stay","Unresolved · 2h"],
+    text:"There was no conditioner in the shower. Small thing, but I would like some if possible before tonight.",
+    scores:[["Severity (minor amenity)",2],["Guest value (tier, repeat business)",3],["Time pressure (wants it tonight)",7]],
+    fix:"Yes",
+    reply:` `,
+    actions:["Delegate to Housekeeping: deliver within 30 minutes","Auto-close the ticket on delivery confirmation","No credit needed"] }
+];
+/* Quadrant placement from the GRPO-trained SmolLM2-135M model (code/build_dashboard_v3.py) */
+const MODEL = {"c1": {"q": "q1", "p": [0.9982, 0.0009, 0.001, 0.0]}, "c2": {"q": "q2", "p": [0.0001, 0.9982, 0.0017, 0.0]}, "c3": {"q": "q3", "p": [0.0026, 0.0748, 0.9226, 0.0]}};
+complaints.forEach(c => { if (MODEL[c.id]) c.q = MODEL[c.id].q; });
+const fillers = {
+  q1:[["Elevator B out of service","Safety · 3 complaints today",` `]],
+  q2:[["Breakfast wait times, weekends","Trend, not blocking stays",` `]],
+  q3:[["Late checkout request","Front desk",` `]],
+  q4:[["Preference for firmer pillows","Log and review monthly",`Hello,
+
+Thank you for letting us know. Firmer pillows are available on request from the front desk, and we have noted your preference for future stays.
+
+Guest Relations`],["Honors points display question","Route to Hilton app support",`Hello,
+
+Thank you for your question about your Honors points. Points can take a few days to appear, and the Hilton Honors support team can check your account directly. We have passed your details on to them.
+
+Guest Relations`]]
+};
+
+let sel = "c1", selTask = "c1";
+const drafts = {}, sent = {};
+function render() {
+  document.getElementById("list").innerHTML = complaints.map(c =>
+    `<button class="pick" data-id="${c.id}" aria-pressed="${c.id===sel}"><i style="background:${QCOLOR[c.q]}"></i>${c.short}</button>`).join("");
+  const c = complaints.find(x => x.id === sel);
+  document.getElementById("detail").innerHTML = `
+    <div class="meta"><span class="chip">${c.room}</span>${c.chips.map(t=>`<span class="chip${/unresolved/i.test(t)?" strong":""}">${t}</span>`).join("")}</div>
+    <blockquote>“${c.text}”</blockquote>
+    <h2>Scoring</h2>
+    <div class="score">${c.scores.map(([l,v])=>`<span>${l}</span><b>${v} / 10</b><div class="bar"><i style="width:${v*10}%"></i></div>`).join("")}</div>`;
+  for (const q of ["q1","q2","q3","q4"]) {
+    const el = document.getElementById(q);
+    el.querySelectorAll(".task").forEach(n => n.remove());
+    const items = [
+      ...complaints.filter(x => x.q === q).map(x => `<div class="task ${x.id===selTask?"sel":""}" data-k="${x.id}"><div>${x.short}<em>${x.chips[0]} · ${x.chips[2]}</em></div><button class="rbtn">Reply</button></div>`),
+      ...fillers[q].map(([t,s],i) => `<div class="task ${q+":"+i===selTask?"sel":""}" data-k="${q}:${i}"><div>${t}<em>${s}</em></div><button class="rbtn">Reply</button></div>`)];
+    el.insertAdjacentHTML("beforeend", items.join(""));
+  }
+}
+function lookup(k) {
+  const c = complaints.find(x => x.id === k);
+  if (c) return { title: c.short, who: `${c.room} · ${c.chips[0]} · ${c.chips[2]}`, reply: c.reply };
+  const [q, i] = k.split(":"), f = fillers[q][+i];
+  return { title: f[0], who: f[1], reply: f[2] };
+}
+let openKey = null;
+function openReply(k) {
+  openKey = k;
+  const m = lookup(k);
+  if (drafts[k] === undefined) drafts[k] = m.reply;
+  const done = !!sent[k];
+  document.getElementById("dlg-to").innerHTML = `Reply about <b>${m.title}</b> · ${m.who}`;
+  const t = document.getElementById("draft");
+  t.value = drafts[k]; t.readOnly = done;
+  document.getElementById("dlg-note").textContent = done ? "Sent (demo only, nothing was delivered)." : "Suggested draft. Edit before sending.";
+  const b = document.getElementById("send"); b.disabled = done; b.textContent = done ? "Sent" : "Send reply";
+  document.getElementById("dlg").showModal();
+}
+document.getElementById("draft").addEventListener("input", e => { drafts[openKey] = e.target.value; });
+document.getElementById("send").addEventListener("click", () => { sent[openKey] = true; openReply(openKey); });
+document.getElementById("dlg-close").addEventListener("click", () => document.getElementById("dlg").close());
+document.querySelector(".matrix").addEventListener("click", e => {
+  const t = e.target.closest(".task"); if (!t) return;
+  const k = t.dataset.k;
+  if (e.target.closest(".rbtn")) { openReply(k); return; }
+  selTask = k;
+  if (complaints.some(x => x.id === k)) sel = k;
+  render();
+});
+document.getElementById("list").addEventListener("click", e => {
+  const b = e.target.closest(".pick"); if (b) { sel = selTask = b.dataset.id; render(); }
+});
+render();
+</script>
+</body>
+</html>
