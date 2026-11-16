@@ -635,3 +635,66 @@ body { font-size: 15px; }
   color: var(--teal-deep);
   text-shadow: 0 0 14px rgba(255,255,255,.95), 0 2px 0 rgba(255,255,255,.6);
 }
+
+/* ==========================================================
+   Intro: spaceship orbits, lands on planet, planet opens
+   ========================================================== */
+html.intro-lock, html.intro-lock body { overflow: hidden; }
+.intro {
+  position: fixed; inset: 0; z-index: 1000; cursor: none;
+  background:
+    radial-gradient(700px 500px at 20% 15%, rgba(154,134,214,.35), transparent 70%),
+    radial-gradient(600px 500px at 85% 90%, rgba(47,143,139,.35), transparent 70%),
+    linear-gradient(180deg, #0b1d2e, #14363B 60%, #1B3A5C);
+  overflow: hidden;
+}
+.stars i {
+  position: absolute; border-radius: 50%; background: #fff;
+  animation: twinkle 3s ease-in-out infinite;
+}
+@keyframes twinkle { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+
+.stage { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+.planet {
+  --pd: clamp(110px, 18vmin, 100px);
+  position: absolute; left: calc(var(--pd) / -2); top: calc(var(--pd) / -2);
+  width: var(--pd); height: var(--pd);
+}
+.planet.thud { animation: thud .4s ease-out; }
+@keyframes thud { 40% { transform: scale(.94); } }
+.globe {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255,255,255,.55) 0 6%, rgba(255,255,255,0) 30%),
+    repeating-linear-gradient(180deg, rgba(255,255,255,0) 0 9%, rgba(150,105,55,.22) 9% 13%, rgba(255,255,255,.14) 13% 20%),
+    linear-gradient(180deg, #d9b67c 0%, #f0d9a8 28%, #d2a76a 52%, #ecd09a 76%, #c4965a 100%);
+  box-shadow: inset -16px -14px 30px rgba(60,35,15,.5), 0 0 46px rgba(242,178,107,.4);
+}
+.ring {
+  position: absolute; left: -70%; top: -70%; width: 240%; height: 240%; border-radius: 50%;
+  background: radial-gradient(closest-side, transparent 0 52%, rgba(236,214,170,.9) 52% 61%, rgba(190,155,105,.55) 61% 65%, rgba(246,230,196,.85) 65% 97%, transparent 98%);
+  transform: rotate(-18deg) scaleY(.28);
+  pointer-events: none;
+}
+.ring.front { clip-path: inset(50% 0 0 0); }
+
+.orbit-path {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+  border-radius: 50%; border: 1px dashed rgba(255,255,255,.25);
+  transition: opacity .5s;
+}
+.orbit-path.hide { opacity: 0; }
+.ship { position: absolute; left: -14px; top: -22px; width: 28px; height: 44px; will-change: transform; transition: opacity .25s; }
+.ship svg { display: block; overflow: visible; filter: drop-shadow(0 0 6px rgba(255,255,255,.5)); }
+.ship .flame { transform-origin: 14px 30px; animation: flicker .12s linear infinite alternate; }
+.ship.landed .flame { opacity: 0; }
+@keyframes flicker { from { transform: scaleY(.7); } to { transform: scaleY(1.2); } }
+
+.intro-text {
+  position: absolute; left: 0; right: 0; bottom: 12vh; text-align: center;
+  font-family: var(--pixel); font-size: 1rem; letter-spacing: .12em; color: rgba(255,255,255,.85);
+  transition: opacity .5s;
+}
+.intro-text.hide { opacity: 0; }
+.intro-text .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; }
+@keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }

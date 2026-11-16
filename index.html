@@ -10,6 +10,17 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
+    <!-- Intro: spaceship orbits (loading), lands on the planet, planet opens to the site -->
+    <div id="intro" class="intro" aria-hidden="true">
+      <div class="stars"></div>
+      <div class="stage">
+        <div class="planet"><div class="ring back"></div><div class="globe"></div><div class="ring front"></div></div>
+        <div class="orbit-path"></div>
+        <div class="ship"><svg viewBox="0 0 28 44" width="28" height="44"><path class="flame" d="M10 30 14 44 18 30z" fill="#F2B26B"/><path d="M14 2c6 6 8 14 8 24H6C6 16 8 8 14 2z" fill="#F7FFFE" stroke="#5F82AE" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 20 1 32l5-2zM22 20l5 12-5-2z" fill="#F4A6B8" stroke="#5F82AE" stroke-width="1.4" stroke-linejoin="round"/><circle cx="14" cy="15" r="3.4" fill="#8EC5EE" stroke="#5F82AE" stroke-width="1.4"/><path d="M8 26h12v4H8z" fill="#C9B6F0" stroke="#5F82AE" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
+      </div>
+      <div class="intro-text">searching for landing page<span class="dots"></span></div>
+    </div>
+
     <div class="bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
   
     <!-- Desktop icons -->
@@ -412,6 +423,87 @@
     </dialog>
   
     <script>
+      // Intro animation: orbit while loading, spiral down, land, planet opens
+      (function () {
+        var intro = document.getElementById('intro');
+        if (!intro) return;
+        var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        function finish() { intro.remove(); document.documentElement.classList.remove('intro-lock'); }
+        if (reduce) { finish(); return; }
+        document.documentElement.classList.add('intro-lock');
+
+        var starBox = intro.querySelector('.stars');
+        for (var i = 0; i < 90; i++) {
+          var st = document.createElement('i');
+          st.style.left = Math.random() * 100 + '%';
+          st.style.top = Math.random() * 100 + '%';
+          var sz = Math.random() * 2 + 1;
+          st.style.width = st.style.height = sz + 'px';
+          st.style.animationDelay = (-Math.random() * 4) + 's';
+          starBox.appendChild(st);
+        }
+
+        var ship = intro.querySelector('.ship');
+        var planet = intro.querySelector('.planet');
+        var path = intro.querySelector('.orbit-path');
+        var text = intro.querySelector('.intro-text');
+        var loaded = document.readyState === 'complete';
+        if (!loaded) window.addEventListener('load', function () { loaded = true; });
+
+        var MIN_ORBIT = 1500, DESCEND = 900, LAND = 500, OPEN = 750;
+        var R, pr;
+        function measure() {
+          pr = planet.offsetWidth / 2;
+          R = Math.max(Math.min(innerWidth, innerHeight) * 0.3, pr + 60);
+          path.style.width = path.style.height = (R * 2) + 'px';
+        }
+        measure();
+        addEventListener('resize', measure);
+
+        var ease = function (t) { return t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; };
+        var angle = -Math.PI / 2, last = performance.now(), start = last;
+        var phase = 'orbit', phaseStart = last, skipped = false;
+        intro.addEventListener('click', function () { skipped = true; });
+
+        function place(a, r, scale) {
+          var x = Math.cos(a) * r, y = Math.sin(a) * r;
+          ship.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + (a * 180 / Math.PI + 180) + 'deg) scale(' + scale + ')';
+        }
+        function setHole(r) {
+          var m = 'radial-gradient(circle at 50% 50%, transparent ' + r + 'px, #000 ' + (r + 1.5) + 'px)';
+          intro.style.webkitMaskImage = intro.style.maskImage = m;
+        }
+
+        function frame(now) {
+          var dt = Math.min(now - last, 50); last = now;
+          var t = now - phaseStart;
+          if (skipped && phase !== 'open') {
+            phase = 'open'; phaseStart = now; t = 0;
+            ship.style.opacity = 0; text.classList.add('hide'); path.classList.add('hide');
+          }
+
+          if (phase === 'orbit') {
+            angle += dt * 0.0042;
+            place(angle, R, 1);
+            if (now - start > MIN_ORBIT && loaded) { phase = 'descend'; phaseStart = now; text.textContent = 'got it!'; path.classList.add('hide'); }
+          } else if (phase === 'descend') {
+            
+            var k = Math.min(t / DESCEND, 1), e = ease(k);
+            angle += dt * (0.0042 - 0.0022 * e);
+            place(angle, R + (pr * 0.78 - R) * e, 1 - 0.65 * e);
+            if (k >= 1) { phase = 'land'; phaseStart = now; ship.classList.add('landed'); planet.classList.add('thud'); }
+          } else if (phase === 'land') {
+            if (t >= LAND) { phase = 'open'; phaseStart = now; ship.style.opacity = 0; text.classList.add('hide'); }
+          } else if (phase === 'open') {
+            var k2 = Math.min(t / OPEN, 1), maxR = Math.hypot(innerWidth, innerHeight) / 2 + 20;
+            setHole(pr * 0.6 + (maxR - pr * 0.6) * k2 * k2 * k2);
+            if (k2 >= 1) { finish(); return; }
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      })();
+
       // Project gallery popup with embedded work
       (function () {
         var dlg = document.getElementById('viewer');
