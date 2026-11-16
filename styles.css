@@ -68,8 +68,8 @@ body {
   background-image:
     linear-gradient(90deg, rgba(247,255,254,.55), rgba(198,226,218,.35) 60%, rgba(247,255,254,.7)),
     url("assets/bgrd.webp");
-  background-size: contain;
-  background-attachment: scroll;
+  background-size: auto;
+  background-attachment:fixed;
   background-position: center;
   -webkit-font-smoothing: antialiased;
 }
